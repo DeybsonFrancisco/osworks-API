@@ -1,10 +1,13 @@
 package com.deybson.osworks.api.controller;
 
+
 import java.util.Optional;
 
+import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -20,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.deybson.osworks.api.event.CreateResourceEvent;
 import com.deybson.osworks.domain.model.Cliente;
 import com.deybson.osworks.domain.service.ClienteService;
 
@@ -29,6 +33,9 @@ public class ClienteController {
 
 	@Autowired
 	private ClienteService service;
+	
+	@Autowired
+	private ApplicationEventPublisher publisher;
 
 	@GetMapping
 	public ResponseEntity<Page<Cliente>> list(@RequestParam(value = "lines", defaultValue = "10") Integer lines,
@@ -62,8 +69,10 @@ public class ClienteController {
 	}
 
 	@PostMapping
-	public ResponseEntity<Cliente> save(@Valid @RequestBody Cliente cliente) {
-		return ResponseEntity.status(201).body(service.save(cliente));
+	public ResponseEntity<Cliente> save(@Valid @RequestBody Cliente cliente, HttpServletResponse response) {
+		Cliente clienteSave = service.save(cliente);
+		publisher.publishEvent(new CreateResourceEvent(this, response, "id", clienteSave.getId()));
+		return ResponseEntity.status(201).body(clienteSave);
 	}
 
 	@PutMapping("/{id}")

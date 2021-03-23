@@ -2,10 +2,12 @@ package com.deybson.osworks.api.controller;
 
 import java.util.stream.Collectors;
 
+import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.deybson.osworks.api.event.CreateResourceEvent;
 import com.deybson.osworks.api.model.OrdemServicoInput;
 import com.deybson.osworks.api.model.OrdemServicoRepresantation;
 import com.deybson.osworks.domain.model.OrdemServico;
@@ -37,6 +40,9 @@ public class OrdemServicoController {
 	
 	@Autowired
 	private ModelMapper modelMapper;
+	
+	@Autowired
+	private ApplicationEventPublisher publisher;
 
 	@GetMapping
 	public ResponseEntity<Page<OrdemServicoRepresantation>> list(
@@ -58,9 +64,14 @@ public class OrdemServicoController {
 	}
 	
 	@PostMapping
-	public ResponseEntity<OrdemServicoRepresantation> save(@Valid @RequestBody OrdemServicoInput ordemServicoInput){
+	public ResponseEntity<OrdemServicoRepresantation> save(
+			@Valid @RequestBody OrdemServicoInput ordemServicoInput,
+			HttpServletResponse response){
+		
 		OrdemServico ordemServico = toEntity(ordemServicoInput);
-		return ResponseEntity.status(201).body(toModel(service.save(ordemServico)));
+		OrdemServico ordemServicoSave = service.save(ordemServico);
+		publisher.publishEvent(new CreateResourceEvent(this, response, "id", ordemServicoSave.getId()));
+		return ResponseEntity.status(201).body(toModel(ordemServicoSave));
 	}
 	
 	@PutMapping("/{id}")
