@@ -1,0 +1,1 @@
+alter table funcionario add column login varchar(255) not null
